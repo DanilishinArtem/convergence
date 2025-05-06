@@ -1,0 +1,1 @@
+tensorboard --logdir=/home/adanilishin/conv/fp8/mnist_analisys/Logs
