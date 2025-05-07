@@ -35,10 +35,15 @@ class LearningProcess:
         numPic = 0
         # hookManager.remove_hooks()
         for epoch in range(config.num_epochs):
+            if config.device == 'cuda':
+                model = model.cuda()
             model.train()
             for batch in self.train_loader:
                 total_counter += 1
                 images, labels = batch["image"], batch["label"]
+                if config.device == 'cuda':
+                    images = images.cuda()
+                    labels = labels.cuda()
                 self.optimizer.zero_grad()
                 output = model(images)
                 loss = self.criterion(output, labels)

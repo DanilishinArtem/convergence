@@ -11,6 +11,11 @@ class ConvTool:
         self.current_weights = torch.tensor([])
         self.exp_avg_sq = torch.tensor([])
         self.grads = torch.tensor([])
+        if config.device == 'cuda':
+            self.initial_weights = self.initial_weights.cuda()
+            self.current_weights = self.current_weights.cuda()
+            self.exp_avg_sq = self.exp_avg_sq.cuda()
+            self.grads = self.grads.cuda()
 
         self.time_conv = None
 

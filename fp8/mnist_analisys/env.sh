@@ -1,1 +1,1 @@
-export PYTHONPATH=/home/adanilishin/conv/fp8:$PYTHONPATH
+export PYTHONPATH=/home/adanilishin/convergence/fp8:$PYTHONPATH

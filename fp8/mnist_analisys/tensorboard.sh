@@ -1,1 +1,1 @@
-tensorboard --logdir=/home/adanilishin/conv/fp8/mnist_analisys/Logs
+tensorboard --logdir=/home/adanilishin/convergence/fp8/mnist_analisys/Logs

@@ -3,6 +3,22 @@ import torch
 from torch.optim.optimizer import Optimizer
 from convTool import ConvTool
 
+import torch
+
+def bitflip_tensor(tensor: torch.Tensor, bit_index: int, element_index: int = 0):
+    assert tensor.dtype == torch.float32 or tensor.dtype == torch.int32, "Только float32 или int32 поддерживается"
+    flat_tensor = tensor.flatten().clone()
+    if element_index >= flat_tensor.numel():
+        raise IndexError("element_index вне диапазона тензора")
+    if tensor.dtype == torch.float32:
+        int_view = flat_tensor.view(torch.int32)
+    else:
+        int_view = flat_tensor
+    mask = 1 << (31 - bit_index)
+    int_view[element_index] ^= mask
+    result = int_view.view(tensor.dtype).reshape(tensor.shape)
+    return result
+
 
 class ScaledAdam(Optimizer):
     def __init__(self, params, writer, lr, beta=0.9, eps=1e-8, rebound='constant', warmup=500, init_lr=None, weight_decay=0, weight_decay_type=None):
@@ -104,7 +120,11 @@ class ScaledAdam(Optimizer):
                 state['exp_avg_sq'].mul_(adam_beta2).addcmul_(grad, grad, value=1-adam_beta2)
 
                 # Quantization ----------------------------------------------------------------------------------------
-                e, m = 5, 2
+                # e, m = 5, 2
+                # if self.convTool.time_conv and self.convTool.time_conv < 600:
+                #     self.low_precision = True
+                #     state['exp_avg'] = self.tensor_to_fp8(state['exp_avg'], exponent_bits=e, mantissa_bits=m)
+
                 # state['exp_avg'] = self.tensor_to_fp8(state['exp_avg'], exponent_bits=e, mantissa_bits=m)
                 # state['exp_avg_sq'] = self.tensor_to_fp8(state['exp_avg_sq'], exponent_bits=5, mantissa_bits=10)
                 # Quantization ----------------------------------------------------------------------------------------
@@ -114,6 +134,14 @@ class ScaledAdam(Optimizer):
                 d_p = -step_size * state['exp_avg'] / denom
 
                 p.data.add_(d_p)
+
+                if self.layer == 0 and state['step'] == 500:# and state['step'] < 600:
+                    source_val = p.data.view(-1)[0]
+                    # new_val = bitflip_tensor(source_val, 2)
+                    new_val = 10
+                    print("[INFO] fault injected for layer {}, {} ---> {}".format(self.layer, source_val, new_val))
+                    p.data.view(-1)[0] = new_val
+
                 self.layer += 1
 
         self.convTool.calculate_T(step_size, group['eps'], state['step'], adam_beta1, adam_beta2, epsilon=1e-4)
@@ -121,6 +149,7 @@ class ScaledAdam(Optimizer):
             self.writer.add_scalar("Low precision", 1, state['step'])
         else:
             self.writer.add_scalar("Low precision", 0, state['step'])
+        self.low_precision = False
         return loss
     
 
